@@ -1,5 +1,5 @@
 const readline = require("readline");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { GoogleGenerativeAI } = require("@google/generative-AI");
 
 async function start() {
   const fetch = await import("node-fetch").then(mod => mod.default);
@@ -34,15 +34,20 @@ async function start() {
       const prompt = `
         나이: ${context.age}, 성별: ${context.gender}, 키: ${context.height}cm, 몸무게: ${context.weight}kg
         상황: ${context.place}인 ${context.destinationRegion} 지역의 날씨에 적합한 옷을 간단하고 구체적으로 추천해주세요. 예: 파란색 셔츠, 청바지
+        현재 날씨: ${context.weatherDescription}
       `;
       const result = await model.generateContent(prompt);
       const response = await result.response;
       let text = await response.text();
-      text = text.replace(/\*\*/g, '');
-      text = text.replace(/^[^\d]*\d+\./, '');
-      text = text.replace(/추가적으로:.*/, '');
 
-      return text.trim();
+      // 추천 옷만 추출
+      const recommendationStart = text.indexOf("추천:");
+      if (recommendationStart !== -1) {
+        text = text.substring(recommendationStart + 7);
+        text = text.trim();
+      }
+
+      return text;
     } catch (error) {
       console.error("Error generating outfit recommendation:", error);
       throw error;
@@ -53,9 +58,9 @@ async function start() {
     try {
       const weather = await getWeather(context.destinationRegion);
       console.log(`입력한 지역 ${context.destinationRegion}의 현재 날씨는: ${weather}`);
-      
+      context.weatherDescription = weather.split(": ")[1];
+
       const outfitRecommendations = await getOutfitRecommendation(context);
-      console.log(`나이: ${context.age}, 성별: ${context.gender}, 키: ${context.height}cm, 몸무게: ${context.weight}kg, 장소: ${context.place}에 따른 옷 추천:`);
       console.log(outfitRecommendations);
     } catch (error) {
       console.error("Error:", error.message);
@@ -92,3 +97,4 @@ async function start() {
 }
 
 start();
+
