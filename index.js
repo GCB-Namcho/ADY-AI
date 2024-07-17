@@ -1,5 +1,5 @@
 const readline = require("readline");
-const { GoogleGenerativeAI } = require("@google/generative-AI");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 async function start() {
   const fetch = await import("node-fetch").then(mod => mod.default);
@@ -21,7 +21,7 @@ async function start() {
       const weatherData = await response.json();
       const temperature = weatherData.main.temp;
       const weatherDescription = weatherData.weather[0].description;
-      return `현재 온도는 ${temperature}도이고, 날씨는 ${weatherDescription}입니다.`;
+      return `온도: ${temperature}도, 날씨: ${weatherDescription}`;
     } catch (error) {
       console.error(`Failed to fetch weather data: ${error.message}`);
       throw error;
@@ -33,18 +33,15 @@ async function start() {
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
       const prompt = `
         나이: ${context.age}, 성별: ${context.gender}, 키: ${context.height}cm, 몸무게: ${context.weight}kg
-        상황: ${context.place}인 ${context.destinationRegion} 지역의 날씨에 적합한 옷을 간단하고 구체적으로 추천해주세요. 예: 파란색 셔츠, 청바지
-        현재 날씨: ${context.weatherDescription}
+        상황: ${context.place}인 ${context.destinationRegion} 지역의 날씨에 적합한 옷을 간단하게 추천해주세요.
       `;
       const result = await model.generateContent(prompt);
       const response = await result.response;
       let text = await response.text();
 
-      // 추천 옷만 추출
       const recommendationStart = text.indexOf("추천:");
       if (recommendationStart !== -1) {
-        text = text.substring(recommendationStart + 7);
-        text = text.trim();
+        text = text.substring(recommendationStart + 3).trim();
       }
 
       return text;
@@ -57,11 +54,9 @@ async function start() {
   async function generateOutfitRecommendation(context) {
     try {
       const weather = await getWeather(context.destinationRegion);
-      console.log(`입력한 지역 ${context.destinationRegion}의 현재 날씨는: ${weather}`);
-      context.weatherDescription = weather.split(": ")[1];
-
       const outfitRecommendations = await getOutfitRecommendation(context);
-      console.log(outfitRecommendations);
+      
+      console.log(`지역: ${context.destinationRegion}, 날씨: ${weather}, 추천 의상: ${outfitRecommendations}`);
     } catch (error) {
       console.error("Error:", error.message);
     }
@@ -97,4 +92,3 @@ async function start() {
 }
 
 start();
-
